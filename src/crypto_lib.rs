@@ -1,6 +1,7 @@
 use hex;
 use std::error::Error;
 use std::collections::HashMap;
+use std::hash::Hash;
 
 fn hex_to_base64(hex_str: &str) -> Result<String, Box<dyn Error>> {
     Ok(base64::encode(hex::decode(hex_str)?))
@@ -24,16 +25,19 @@ pub fn fixed_xor(bytes_a: &mut Vec<u8>, bytes_b: &Vec<u8>) {
     }
 }
 
+pub fn histogram_for<T: Hash + Eq>(input: &Vec<T>) -> HashMap<&T, i32> {
+    let mut histogram = HashMap::new();
+    for e in input.iter() {
+        let v = *histogram.entry(e).or_insert(0);
+        histogram.insert(e, v + 1);
+    };
+    return histogram;
+}
+
 pub fn try_decrypt_single_xor(decode_str: &str, attempt_with: u8) -> String {
     let mut enc_bytes = hex::decode(decode_str).unwrap();
-    let mut frequencies = HashMap::new();
 
-    for b in enc_bytes.iter() {
-        let v = *frequencies.entry(b).or_insert(0);
-        frequencies.insert(b, v + 1);
-    }
-
-    let mut most_frequent = frequencies
+    let most_frequent = histogram_for(&enc_bytes)
         .into_iter().max_by_key(|a| { a.1 })
         .unwrap().0;
 
