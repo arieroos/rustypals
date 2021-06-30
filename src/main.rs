@@ -33,5 +33,5 @@ fn main() {
         }
     }
 
-    println!("Decoded with '{}': {}", best_char, best_result)
+    println!("Decoded for '{}': {}", best_char, best_result)
 }
