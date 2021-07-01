@@ -3,8 +3,14 @@ use std::error::Error;
 use std::collections::HashMap;
 use std::hash::Hash;
 
+const COMMON_ENGLISH_CHARS: &str = "etaoin shrdluETAOINSHRDLU";
+
 fn hex_to_base64(hex_str: &str) -> Result<String, Box<dyn Error>> {
     Ok(base64::encode(hex::decode(hex_str)?))
+}
+
+pub fn hex_to_utf8(hex_str: &str) -> Result<String, Box<dyn Error>> {
+    Ok(hex::decode(hex_str)?.into_iter().map(|x| { x as char }).collect())
 }
 
 fn fixed_xor_hex(hex_str_a: &str, hex_str_b: &str) -> Result<String, Box<dyn Error>> {
@@ -34,6 +40,21 @@ pub fn histogram_for<T: Hash + Eq>(input: &Vec<T>) -> HashMap<&T, i32> {
     return histogram;
 }
 
+pub fn score_english(sentence: &String) -> i32 {
+    let chars = sentence.chars().collect::<Vec<char>>();
+
+    histogram_for(&chars)
+        .into_iter()
+        .fold(0, |acc, x| {
+            let m = match (COMMON_ENGLISH_CHARS.contains(*x.0), x.0.is_alphanumeric()) {
+                (true, _) => 2,
+                (_, true) => 1,
+                _ => 0
+            };
+            acc + (x.1 * m)
+        })
+}
+
 pub fn try_decrypt_single_xor(decode_str: &str, attempt_with: u8) -> String {
     let mut enc_bytes = hex::decode(decode_str).unwrap();
 
@@ -49,7 +70,7 @@ pub fn try_decrypt_single_xor(decode_str: &str, attempt_with: u8) -> String {
 }
 
 pub fn decrypt_single_xor(decode_str: &str) -> (String, char) {
-    let try_str = "etaoin shrdlu";
+    let try_str = COMMON_ENGLISH_CHARS;
 
     let mut best_char = 'e';
     let mut best_score = 0;
@@ -58,25 +79,14 @@ pub fn decrypt_single_xor(decode_str: &str) -> (String, char) {
     for c in try_str.as_bytes() {
         let result = try_decrypt_single_xor(decode_str, *c);
 
-        let chars = result.chars().collect::<Vec<char>>();
-        let score = histogram_for(&chars)
-            .into_iter()
-            .fold(0, |acc, x| {
-                let m = match (try_str.contains(*x.0), x.0.is_alphanumeric()) {
-                    (true, _) => 2,
-                    (_, true) => 1,
-                    _ => 0
-                };
-                acc + (x.1 * m)
-            });
-
+        let score=  score_english(&result);
         if score > best_score {
             best_score = score;
             best_char = *c as char;
             best_result = result;
         }
     };
-    return (best_result, best_char)
+    return (best_result, best_char);
 }
 
 #[cfg(test)]
