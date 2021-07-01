@@ -48,6 +48,37 @@ pub fn try_decrypt_single_xor(decode_str: &str, attempt_with: u8) -> String {
     enc_bytes.into_iter().map(|b| { b as char }).collect::<String>()
 }
 
+pub fn decrypt_single_xor(decode_str: &str) -> (String, char) {
+    let try_str = "etaoin shrdlu";
+
+    let mut best_char = 'e';
+    let mut best_score = 0;
+    let mut best_result = "".to_string();
+
+    for c in try_str.as_bytes() {
+        let result = try_decrypt_single_xor(decode_str, *c);
+
+        let chars = result.chars().collect::<Vec<char>>();
+        let score = histogram_for(&chars)
+            .into_iter()
+            .fold(0, |acc, x| {
+                let m = match (try_str.contains(*x.0), x.0.is_alphanumeric()) {
+                    (true, _) => 2,
+                    (_, true) => 1,
+                    _ => 0
+                };
+                acc + (x.1 * m)
+            });
+
+        if score > best_score {
+            best_score = score;
+            best_char = *c as char;
+            best_result = result;
+        }
+    };
+    return (best_result, best_char)
+}
+
 #[cfg(test)]
 mod crypto_test {
     use crate::crypto_lib::{hex_to_base64, fixed_xor_hex};
