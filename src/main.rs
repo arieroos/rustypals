@@ -11,15 +11,7 @@ fn challenge3() {
     println!("Decoded with '{}': {}", best_char, best_result)
 }
 
-fn args_contain(val: &str) -> bool {
-    env::args().any(|x| { x == val.to_string() })
-}
-
-fn main() {
-    if args_contain("3") {
-        challenge3()
-    }
-
+fn challenge4() {
     let f_str = fs::read_to_string("data/4.txt").unwrap();
     let lines = f_str.split_whitespace().collect::<Vec<&str>>();
 
@@ -40,4 +32,18 @@ fn main() {
     }
 
     println!("Line number {} ({}) decrypts to: {}", best_line_number, best_line_hex, best_decrypted);
+}
+
+fn args_contain(val: &str) -> bool {
+    env::args().any(|x| { x == val.to_string() })
+}
+
+fn main() {
+    if args_contain("3") {
+        challenge3()
+    }
+    if args_contain("4") {
+        challenge4()
+    }
+
 }
