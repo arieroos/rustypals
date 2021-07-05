@@ -79,7 +79,7 @@ pub fn decrypt_single_xor(decode_str: &str) -> (String, char) {
     for c in try_str.as_bytes() {
         let result = try_decrypt_single_xor(decode_str, *c);
 
-        let score=  score_english(&result);
+        let score = score_english(&result);
         if score > best_score {
             best_score = score;
             best_char = *c as char;
@@ -87,6 +87,13 @@ pub fn decrypt_single_xor(decode_str: &str) -> (String, char) {
         }
     };
     return (best_result, best_char);
+}
+
+pub fn repeating_key_xor<T: AsRef<[u8]>>(to_encrypt: T, key: T) -> Vec<u8> {
+    let key_ref = key.as_ref();
+    to_encrypt.as_ref().iter().enumerate()
+        .map(|(i, c)| { key_ref[i % key_ref.len()] ^ *c })
+        .collect()
 }
 
 #[cfg(test)]

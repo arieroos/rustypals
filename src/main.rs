@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate simple_error;
 
+use hex;
 use std::{env, fs};
 
 mod crypto_lib;
@@ -46,4 +47,14 @@ fn main() {
         challenge4()
     }
 
+    let to_encrypt = [
+        "Burning 'em, if you ain't quick and nimble",
+        "I go crazy when I hear a cymbal"
+    ];
+    let key = "ICE";
+
+    for l in to_encrypt {
+        let encrypted = crypto_lib::repeating_key_xor(l, key);
+        println!("{}", hex::encode(encrypted))
+    }
 }
