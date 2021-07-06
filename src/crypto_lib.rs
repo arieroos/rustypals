@@ -96,9 +96,31 @@ pub fn repeating_key_xor<T: AsRef<[u8]>>(to_encrypt: T, key: T) -> Vec<u8> {
         .collect()
 }
 
+fn hamming_byte(b1: u8, b2: u8) -> usize {
+    let mut c: usize = 0;
+    let comp = b1 ^ b2;
+    for i in 0..8 {
+        let mask: u8 = 1 << i;
+        if comp & mask > 0 {
+            c += 1;
+        }
+    }
+    return c;
+}
+
+pub fn hamming_distance<S: AsRef<[u8]>>(str1: S, str2: S) -> usize {
+    let (b1, b2) = (str1.as_ref(), str2.as_ref());
+    if b1.len() != b2.len() {
+        return 0;
+    }
+    b1.iter()
+        .zip(b2.iter())
+        .fold(0, |acc, (a, b)| { acc + hamming_byte(*a, *b) })
+}
+
 #[cfg(test)]
 mod crypto_test {
-    use crate::crypto_lib::{hex_to_base64, fixed_xor_hex};
+    use crate::crypto_lib::{hex_to_base64, fixed_xor_hex, hamming_distance};
 
     #[test]
     fn test_hex_to_base64() {
@@ -110,5 +132,11 @@ mod crypto_test {
     fn test_fixed_xor() {
         let res = fixed_xor_hex("1c0111001f010100061a024b53535009181c", "686974207468652062756c6c277320657965").unwrap();
         assert_eq!(res, String::from("746865206b696420646f6e277420706c6179"))
+    }
+
+    #[test]
+    fn test_hamming_distance() {
+        let res = hamming_distance("this is a test", "wokka wokka!!!");
+        assert_eq!(res, 37)
     }
 }
