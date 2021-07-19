@@ -11,8 +11,10 @@ mod crypto_lib;
 
 fn challenge3() {
     let decode_str = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
-    let (best_result, best_char) = crypto_lib::decrypt_single_xor(decode_str);
-    println!("Decoded with '{}': {:?}", best_char, best_result)
+    let cypher_bytes = hex::decode(decode_str).unwrap();
+    let (best_result, best_char) = crypto_lib::decrypt_single_xor(cypher_bytes);
+    let out = str::from_utf8(&best_result).unwrap_or("definitely wrong");
+    println!("Decoded with '{}': {:?}", best_char as char, out)
 }
 
 fn challenge4() {
@@ -57,13 +59,16 @@ fn args_contain(val: &str) -> bool {
 
 fn main() {
     if args_contain("3") {
-        challenge3()
+        challenge3();
+        return;
     }
     if args_contain("4") {
-        challenge4()
+        challenge4();
+        return;
     }
     if args_contain("5") {
-        challenge5()
+        challenge5();
+        return;
     }
 
     let cypher_bytes = base64::decode("HUIfTQsPAh9PE048GmllH0kcDk4TAQsHThsBFkU2AB4BSWQgVB0dQzNTTmVS").unwrap();
