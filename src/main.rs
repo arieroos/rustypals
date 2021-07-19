@@ -26,7 +26,8 @@ fn challenge4() {
     let mut best_line_hex = "";
     let mut best_decrypted = "".to_string();
     for (i, l) in lines.into_iter().enumerate() {
-        let decrypted = crypto_lib::decrypt_single_xor(l).0;
+        let cypher_bytes = hex::decode(&l).unwrap();
+        let decrypted = crypto_lib::decrypt_single_xor(cypher_bytes).0;
         let score = crypto_lib::score_english(&decrypted);
 
         if score > best_score {
