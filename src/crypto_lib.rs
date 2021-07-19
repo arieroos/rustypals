@@ -5,30 +5,32 @@ use std::hash::Hash;
 
 const COMMON_ENGLISH_CHARS: &str = "etaoin shrdluETAOINSHRDLU";
 
+#[allow(dead_code)]
 fn hex_to_base64(hex_str: &str) -> Result<String, Box<dyn Error>> {
     Ok(base64::encode(hex::decode(hex_str)?))
 }
 
+#[allow(dead_code)]
 pub fn hex_to_utf8(hex_str: &str) -> Result<String, Box<dyn Error>> {
     Ok(hex::decode(hex_str)?.into_iter().map(|x| { x as char }).collect())
 }
 
+#[allow(dead_code)]
 fn fixed_xor_hex(hex_str_a: &str, hex_str_b: &str) -> Result<String, Box<dyn Error>> {
     if hex_str_a.len() != hex_str_b.len() {
         bail!("hex strings must be of same length")
     }
 
-    let mut bytes_a = hex::decode(hex_str_a)?;
+    let bytes_a = hex::decode(hex_str_a)?;
     let bytes_b = hex::decode(hex_str_b)?;
-    fixed_xor(&mut bytes_a, &bytes_b);
+    let res = fixed_xor(bytes_a, bytes_b);
 
-    Ok(hex::encode(bytes_a))
+    Ok(hex::encode(res))
 }
 
-pub fn fixed_xor(bytes_a: &mut Vec<u8>, bytes_b: &Vec<u8>) {
-    for i in 0..bytes_a.len() {
-        bytes_a[i] ^= bytes_b[i]
-    }
+pub fn fixed_xor<T: AsRef<[u8]>>(bytes_a: T, bytes_b: T) -> Vec<u8> {
+    let (a, b) = (bytes_a.as_ref(), bytes_b.as_ref());
+    a.iter().zip(b.iter()).map(|(x, y)| { x ^ y }).collect()
 }
 
 pub fn histogram_for<T: Hash + Eq>(input: &Vec<T>) -> HashMap<&T, i32> {
@@ -40,8 +42,10 @@ pub fn histogram_for<T: Hash + Eq>(input: &Vec<T>) -> HashMap<&T, i32> {
     return histogram;
 }
 
-pub fn score_english(sentence: &String) -> i32 {
-    let chars = sentence.chars().collect::<Vec<char>>();
+pub fn score_english<T: AsRef<[u8]>>(sentence: T) -> i32 {
+    let chars = sentence.as_ref()
+        .iter().map(|x| {*x as char})
+        .collect();
 
     histogram_for(&chars)
         .into_iter()
@@ -55,8 +59,10 @@ pub fn score_english(sentence: &String) -> i32 {
         })
 }
 
-pub fn try_decrypt_single_xor(decode_str: &str, attempt_with: u8) -> String {
-    let mut enc_bytes = hex::decode(decode_str).unwrap();
+pub fn try_decrypt_single_xor<T: AsRef<[u8]>>(decode_str: T, attempt_with: u8) -> Vec<u8> {
+    let enc_bytes = decode_str.as_ref()
+        .iter().map(|x| { *x })
+        .collect::<Vec<u8>>();
 
     let most_frequent = histogram_for(&enc_bytes)
         .into_iter().max_by_key(|a| { a.1 })
@@ -64,29 +70,28 @@ pub fn try_decrypt_single_xor(decode_str: &str, attempt_with: u8) -> String {
 
     let xor_byte = most_frequent ^ (attempt_with);
     let xor_bytes = vec![xor_byte; enc_bytes.len()];
-    fixed_xor(&mut enc_bytes, &xor_bytes);
-
-    enc_bytes.into_iter().map(|b| { b as char }).collect::<String>()
+    fixed_xor(&enc_bytes, &xor_bytes)
 }
 
-pub fn decrypt_single_xor(decode_str: &str) -> (String, char) {
+pub fn decrypt_single_xor<T: AsRef<[u8]>>(cypher_text: T) -> (Vec<u8>, u8) {
     let try_str = COMMON_ENGLISH_CHARS;
+    let cypher_bytes = cypher_text.as_ref();
 
-    let mut best_char = 'e';
+    let mut key = b'e';
     let mut best_score = 0;
-    let mut best_result = "".to_string();
+    let mut best_result= Vec::new();
 
     for c in try_str.as_bytes() {
-        let result = try_decrypt_single_xor(decode_str, *c);
+        let result = try_decrypt_single_xor(cypher_bytes, *c);
 
         let score = score_english(&result);
         if score > best_score {
             best_score = score;
-            best_char = *c as char;
+            key = *c ^ result[0];
             best_result = result;
         }
     };
-    return (best_result, best_char);
+    return (best_result, key);
 }
 
 pub fn repeating_key_xor<T: AsRef<[u8]>>(to_encrypt: T, key: T) -> Vec<u8> {
@@ -97,7 +102,7 @@ pub fn repeating_key_xor<T: AsRef<[u8]>>(to_encrypt: T, key: T) -> Vec<u8> {
 }
 
 fn hamming_byte(b1: u8, b2: u8) -> usize {
-    let mut c: usize = 0;
+    let mut c = 0;
     let comp = b1 ^ b2;
     for i in 0..8 {
         let mask: u8 = 1 << i;
@@ -108,14 +113,15 @@ fn hamming_byte(b1: u8, b2: u8) -> usize {
     return c;
 }
 
-pub fn hamming_distance<S: AsRef<[u8]>>(str1: S, str2: S) -> usize {
+pub fn hamming_distance<S: AsRef<[u8]>>(str1: S, str2: S) -> Result<usize, String> {
     let (b1, b2) = (str1.as_ref(), str2.as_ref());
     if b1.len() != b2.len() {
-        return 0;
+        return Err("lengths don't match".to_string());
     }
-    b1.iter()
+    let sum = b1.iter()
         .zip(b2.iter())
-        .fold(0, |acc, (a, b)| { acc + hamming_byte(*a, *b) })
+        .fold(0, |acc, (a, b)| { acc + hamming_byte(*a, *b) });
+    return Ok(sum);
 }
 
 #[cfg(test)]
