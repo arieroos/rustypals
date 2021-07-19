@@ -42,15 +42,16 @@ fn challenge4() {
 }
 
 fn challenge5() {
-    let to_encrypt = [
-        "Burning 'em, if you ain't quick and nimble",
-        "I go crazy when I hear a cymbal"
-    ];
+    let to_encrypt = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal";
     let key = "ICE";
 
-    for l in to_encrypt {
-        let encrypted = crypto_lib::repeating_key_xor(l, key);
-        println!("{}", hex::encode(encrypted))
+    let encrypted = crypto_lib::repeating_key_xor(to_encrypt, key);
+    let mut cypher_text = hex::encode(encrypted);
+
+    while !cypher_text.is_empty() {
+        let (chunk, rest) = cypher_text.split_at(min(75, cypher_text.len()));
+        println!("{}", chunk);
+        cypher_text = rest.to_string();
     }
 }
 
